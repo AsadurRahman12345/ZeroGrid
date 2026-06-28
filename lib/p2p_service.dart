@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart'; // provides defaultTargetPlatform
 import 'package:nearby_connections/nearby_connections.dart';
 import 'package:permission_handler/permission_handler.dart';
+
 import 'message_model.dart';
 import 'mesh_packet.dart';
 import 'crypto_service.dart';
@@ -152,7 +153,10 @@ class P2PService extends ChangeNotifier {
       Permission.bluetoothConnect,
       Permission.bluetoothScan,
       Permission.location,
-      Permission.nearbyWifiDevices,
+      // nearbyWifi (formerly nearbyWifiDevices) — Android 13+ only.
+      // permission_handler 12.x uses nearbyWifiDevices spelling.
+      if (defaultTargetPlatform == TargetPlatform.android)
+        Permission.nearbyWifiDevices,
     ].request();
 
     // BUG FIX: On iOS, location can return PermissionStatus.limited
