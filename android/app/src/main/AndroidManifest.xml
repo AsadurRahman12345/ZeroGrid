@@ -116,7 +116,9 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="connectedDevice"
-            android:stopWithTask="false" />
+            android:stopWithTask="false"
+            tools:replace="android:exported" />
+
 
         <!-- Boot receiver: restarts the mesh service if the device reboots -->
         <receiver
