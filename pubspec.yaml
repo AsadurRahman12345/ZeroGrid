@@ -11,7 +11,7 @@ dependencies:
     sdk: flutter
 
   # ── P2P Discovery & Communication ──────────────────────────────────────────
-  nearby_connections: ^3.0.0
+  nearby_connections: ^4.3.0
 
   # ── Message ID Generation ──────────────────────────────────────────────────
   uuid: ^4.4.0
@@ -20,7 +20,7 @@ dependencies:
   provider: ^6.1.2
 
   # ── Permissions Runtime ────────────────────────────────────────────────────
-  permission_handler: ^11.3.1
+  permission_handler: ^12.0.0
 
   # ── End-to-End Encryption ──────────────────────────────────────────────────
   cryptography: ^2.7.0
@@ -37,7 +37,7 @@ dependencies:
 
   # ── Local Notifications (required by foreground service on Android) ────────
   # Used to build the persistent "ZeroGrid active" status bar notification.
-  flutter_local_notifications: ^17.2.3
+  flutter_local_notifications: ^18.0.0
 
   # ── Local Database (Hive) ──────────────────────────────────────────────────
   # Lightning-fast, pure-Dart key-value store backed by a binary file.
