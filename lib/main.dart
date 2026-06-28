@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:math' as math;
 import 'p2p_service.dart';
 import 'chat_screen.dart';
 import 'storage_service.dart';
 import 'background_service.dart';
+
 
 // ── Boot sequence ─────────────────────────────────────────────────────────────
 // Must be async so we can await StorageService and BackgroundService setup
@@ -65,6 +67,12 @@ class _DiscoveryHubScreenState extends State<DiscoveryHubScreen>
   late AnimationController _radarController;
   late AnimationController _dotController;
 
+  // ── Status state ────────────────────────────────────────────────────
+  String _statusText = 'Initializing...';
+  bool _permissionDenied = false;
+  bool _p2pActive = false;
+  String? _errorText;
+
   @override
   void initState() {
     super.initState();
@@ -79,49 +87,73 @@ class _DiscoveryHubScreenState extends State<DiscoveryHubScreen>
       duration: const Duration(milliseconds: 800),
     )..repeat(reverse: true);
 
-    // Kick off P2P as soon as the screen mounts.
-    // We defer one frame so the widget tree is fully built before
-    // Provider.of is called outside of build().
     WidgetsBinding.instance.addPostFrameCallback((_) => _startP2P());
   }
 
+  void _setStatus(String text) {
+    if (mounted) setState(() { _statusText = text; _errorText = null; });
+  }
+
+  void _setError(String text) {
+    if (mounted) setState(() { _errorText = text; _statusText = 'Error'; });
+  }
+
   Future<void> _startP2P() async {
+    if (!mounted) return;
+    setState(() {
+      _permissionDenied = false;
+      _errorText = null;
+      _p2pActive = false;
+    });
+
     final service = context.read<P2PService>();
 
-    // ── Boot the crypto layer FIRST ─────────────────────────────────────────
-    // Loads or generates the X25519 key pair from secure storage.
-    // No P2P operation is safe to call before this resolves.
-    await service.init();
+    try {
+      // Step 1 — Init crypto (loads/generates X25519 key pair)
+      _setStatus('Loading encryption keys...');
+      await service.init();
 
-    final granted = await service.requestPermissions();
-    if (!granted) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Color(0xFF111111),
-            content: Text(
-              '⚠️  Permissions required for peer discovery.',
-              style: TextStyle(color: Color(0xFF00E5FF)),
-            ),
-          ),
-        );
+      // Step 2 — Request ALL permissions with dialog
+      _setStatus('Requesting permissions...');
+      final granted = await service.requestPermissions();
+
+      if (!granted) {
+        if (mounted) {
+          setState(() {
+            _permissionDenied = true;
+            _statusText = 'Permissions denied';
+          });
+        }
+        return;
       }
-      return;
-    }
-    // Run advertising + discovery simultaneously so each device is
-    // both findable and actively scanning.
-    await service.startAdvertising();
-    await service.startDiscovery();
 
-    // 3. Start the background service so the mesh stays alive when minimised.
-    await BackgroundService().start();
+      // Step 3 — Start advertising (makes this device discoverable)
+      _setStatus('Starting advertising...');
+      await service.startAdvertising();
+
+      // Step 4 — Start discovery (scans for other devices)
+      _setStatus('Starting discovery...');
+      await service.startDiscovery();
+
+      // Step 5 — Background service
+      _setStatus('Starting background service...');
+      await BackgroundService().start();
+
+      if (mounted) {
+        setState(() {
+          _p2pActive = true;
+          _statusText = 'Scanning for nearby agents...';
+        });
+      }
+    } catch (e) {
+      _setError('$e');
+    }
   }
 
   @override
   void dispose() {
     _radarController.dispose();
     _dotController.dispose();
-    // NOTE: P2PService.stopAll() is called in its own dispose() via Provider.
     super.dispose();
   }
 
@@ -140,58 +172,190 @@ class _DiscoveryHubScreenState extends State<DiscoveryHubScreen>
     );
   }
 
-  // ── Header ──────────────────────────────────────────────────────────────────
+  // ── Header ──────────────────────────────────────────────────────────────
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
       child: Column(
         children: [
-          const Text(
-            'ZeroGrid',
-            style: TextStyle(
-              color: Color(0xFFEEEEEE),
-              fontSize: 36,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 4.0,
-              fontFamily: 'monospace',
-            ),
-          ),
-          const SizedBox(height: 12),
+          // Title row with active badge
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              AnimatedBuilder(
-                animation: _dotController,
-                builder: (context, child) {
-                  return Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF00E5FF)
-                          .withOpacity(0.2 + (_dotController.value * 0.8)),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF00E5FF),
-                          blurRadius: 8 * _dotController.value,
-                          spreadRadius: 2 * _dotController.value,
-                        )
-                      ],
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
               const Text(
-                'Scanning for nearby agents...',
-                style: TextStyle(color: Color(0xFF888888), fontSize: 14),
+                'ZeroGrid',
+                style: TextStyle(
+                  color: Color(0xFFEEEEEE),
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 4.0,
+                  fontFamily: 'monospace',
+                ),
               ),
+              if (_p2pActive) ...[
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00E5FF).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.5)),
+                  ),
+                  child: const Text(
+                    'ACTIVE',
+                    style: TextStyle(
+                      color: Color(0xFF00E5FF),
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
+          const SizedBox(height: 12),
+
+          // Status line
+          if (_errorText != null) ...[
+            // Error state
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.withOpacity(0.4)),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    '⚠️ Error: $_errorText',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red, fontSize: 11),
+                  ),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: _startP2P,
+                    child: const Text(
+                      '↺  RETRY',
+                      style: TextStyle(
+                        color: Color(0xFF00E5FF),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (_permissionDenied) ...[
+            // Permission denied state
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withOpacity(0.4)),
+              ),
+              child: Column(
+                children: [
+                  const Text(
+                    '🔒 Bluetooth & Location permissions are required.\nPlease grant them and retry.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.orange, fontSize: 11),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      GestureDetector(
+                        onTap: _startP2P,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00E5FF).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.5)),
+                          ),
+                          child: const Text(
+                            '↺  RETRY',
+                            style: TextStyle(
+                              color: Color(0xFF00E5FF),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      GestureDetector(
+                        onTap: openAppSettings,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                          ),
+                          child: const Text(
+                            '⚙  SETTINGS',
+                            style: TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            // Normal scanning status row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedBuilder(
+                  animation: _dotController,
+                  builder: (context, child) {
+                    return Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00E5FF)
+                            .withOpacity(0.2 + (_dotController.value * 0.8)),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF00E5FF),
+                            blurRadius: 8 * _dotController.value,
+                            spreadRadius: 2 * _dotController.value,
+                          )
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _statusText,
+                  style: const TextStyle(color: Color(0xFF888888), fontSize: 14),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
+
 
   // ── Radar ───────────────────────────────────────────────────────────────────
   Widget _buildRadar() {
