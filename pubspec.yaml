@@ -1,0 +1,62 @@
+name: zerogrid
+description: ZeroGrid – Off-grid P2P encrypted mesh messaging app.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ── P2P Discovery & Communication ──────────────────────────────────────────
+  nearby_connections: ^3.0.0
+
+  # ── Message ID Generation ──────────────────────────────────────────────────
+  uuid: ^4.4.0
+
+  # ── State Management ───────────────────────────────────────────────────────
+  provider: ^6.1.2
+
+  # ── Permissions Runtime ────────────────────────────────────────────────────
+  permission_handler: ^11.3.1
+
+  # ── End-to-End Encryption ──────────────────────────────────────────────────
+  cryptography: ^2.7.0
+
+  # ── Secure Key Storage (X25519 private key) ────────────────────────────────
+  flutter_secure_storage: ^9.2.2
+
+  # ── Background Execution ───────────────────────────────────────────────────
+  # Cross-platform background service manager.
+  # Android: wraps a Foreground Service with a persistent notification.
+  # iOS:     integrates with BGTaskScheduler & background BLE sessions.
+  # Pub page: https://pub.dev/packages/flutter_background_service
+  flutter_background_service: ^5.0.5
+
+  # ── Local Notifications (required by foreground service on Android) ────────
+  # Used to build the persistent "ZeroGrid active" status bar notification.
+  flutter_local_notifications: ^17.2.3
+
+  # ── Local Database (Hive) ──────────────────────────────────────────────────
+  # Lightning-fast, pure-Dart key-value store backed by a binary file.
+  # No native code, works identically on Android and iOS.
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0   # Flutter-specific init helper (path resolution)
+
+  # ── File-system path resolution (required by Hive on mobile) ──────────────
+  path_provider: ^2.1.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+  # ── Hive code generation (TypeAdapters) ───────────────────────────────────
+  # Run: flutter pub run build_runner build --delete-conflicting-outputs
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.11
+
+flutter:
+  uses-material-design: true

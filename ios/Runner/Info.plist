@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  ╔══════════════════════════════════════════════════════════════════════════╗
+  ║  ZeroGrid – Info.plist (iOS)  FINAL – Background Edition               ║
+  ║  FILE LOCATION: ios/Runner/Info.plist                                  ║
+  ╚══════════════════════════════════════════════════════════════════════════╝
+-->
+<plist version="1.0">
+<dict>
+
+    <!-- ══════════════════════════════════════════════════════
+         APP IDENTITY
+    ═══════════════════════════════════════════════════════════ -->
+    <key>CFBundleIdentifier</key>
+    <string>com.zerogrid.app</string>
+
+    <key>CFBundleName</key>
+    <string>ZeroGrid</string>
+
+    <key>CFBundleDisplayName</key>
+    <string>ZeroGrid</string>
+
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+
+    <key>CFBundleVersion</key>
+    <string>1</string>
+
+    <!-- ══════════════════════════════════════════════════════
+         BLUETOOTH PERMISSIONS
+    ═══════════════════════════════════════════════════════════ -->
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>ZeroGrid uses Bluetooth to discover and communicate directly with other nearby ZeroGrid users without the internet.</string>
+
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>ZeroGrid uses Bluetooth to discover and communicate directly with other nearby ZeroGrid users without the internet.</string>
+
+    <!-- ══════════════════════════════════════════════════════
+         LOCAL NETWORK PERMISSIONS
+    ═══════════════════════════════════════════════════════════ -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>ZeroGrid uses your local Wi-Fi network to find and connect to nearby agents for off-grid encrypted messaging.</string>
+
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_zerogrid._tcp</string>
+        <string>_zerogrid._udp</string>
+    </array>
+
+    <!-- ══════════════════════════════════════════════════════
+         LOCATION PERMISSIONS
+    ═══════════════════════════════════════════════════════════ -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>ZeroGrid needs your location to comply with local regulations for Bluetooth and Wi-Fi peer scanning.</string>
+
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>ZeroGrid uses your location in the background to maintain active peer connections in the mesh network.</string>
+
+    <!-- ══════════════════════════════════════════════════════
+         BACKGROUND MODES  (EXPANDED)
+         ────────────────────────────────────────────────────
+         bluetooth-central    : Scan for and receive data from BLE peripherals
+                                while backgrounded. Required for receiving
+                                incoming messages when app is not in focus.
+         bluetooth-peripheral : Continue advertising our BLE endpoint so other
+                                devices can discover us when we are backgrounded.
+         fetch                : Background app refresh — used by BGTaskScheduler
+                                to schedule periodic mesh-health checks.
+         processing           : BGProcessingTask — allows longer CPU-intensive
+                                tasks (key rotation, database compaction) when
+                                the device is idle and plugged in.
+    ═══════════════════════════════════════════════════════════ -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>bluetooth-central</string>
+        <string>bluetooth-peripheral</string>
+        <string>fetch</string>
+        <string>processing</string>
+    </array>
+
+    <!-- ══════════════════════════════════════════════════════
+         BGTASKSCHEDULER PERMITTED IDENTIFIERS
+         ────────────────────────────────────────────────────
+         Each identifier here MUST be registered with BGTaskScheduler
+         via BGTaskScheduler.shared.register(...) in AppDelegate.swift.
+         Identifiers not declared here are silently rejected by the OS.
+
+         com.zerogrid.app.mesh-refresh:
+             BGAppRefreshTask — runs periodically (OS decides when).
+             Used to re-initiate BLE scanning if the session expired.
+             Runs for ~30 seconds maximum.
+
+         com.zerogrid.app.db-maintenance:
+             BGProcessingTask — runs when device is idle & charging.
+             Used to compact Hive boxes and rotate encryption keys.
+             Can run for several minutes.
+    ═══════════════════════════════════════════════════════════ -->
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.zerogrid.app.mesh-refresh</string>
+        <string>com.zerogrid.app.db-maintenance</string>
+    </array>
+
+    <!-- ══════════════════════════════════════════════════════
+         FLUTTER STANDARD KEYS
+    ═══════════════════════════════════════════════════════════ -->
+    <key>NSPrincipalClass</key>
+    <string>FlutterApplication</string>
+
+    <key>UIMainStoryboardFile</key>
+    <string>Main</string>
+
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
+
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+
+    <key>CADisableMinimumFrameDurationOnPhone</key>
+    <true/>
+    <key>UIApplicationSupportsIndirectInputEvents</key>
+    <true/>
+
+</dict>
+</plist>

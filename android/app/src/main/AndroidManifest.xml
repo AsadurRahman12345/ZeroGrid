@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ╔══════════════════════════════════════════════════════════════════════════╗
+  ║  ZeroGrid – AndroidManifest.xml  (FINAL – Background Edition)          ║
+  ║                                                                         ║
+  ║  FILE LOCATION:  android/app/src/main/AndroidManifest.xml              ║
+  ╚══════════════════════════════════════════════════════════════════════════╝
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ══════════════════════════════════════════════════════
+         BLUETOOTH PERMISSIONS
+         Android 12+ (API 31+): New granular Bluetooth permissions.
+         Android 6–11: BLUETOOTH + BLUETOOTH_ADMIN are sufficient.
+    ═══════════════════════════════════════════════════════════ -->
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!-- ══════════════════════════════════════════════════════
+         LOCATION PERMISSIONS
+    ═══════════════════════════════════════════════════════════ -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- ══════════════════════════════════════════════════════
+         WI-FI PERMISSIONS
+    ═══════════════════════════════════════════════════════════ -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="tiramisu" />
+
+    <!-- ══════════════════════════════════════════════════════
+         FOREGROUND SERVICE PERMISSIONS
+         FOREGROUND_SERVICE: required to call startForeground().
+         FOREGROUND_SERVICE_CONNECTED_DEVICE: Android 14+ type-specific
+         permission for services that use Bluetooth/Wi-Fi.
+         POST_NOTIFICATIONS: Android 13+ — must be granted at runtime
+         before the status-bar notification can appear.
+    ═══════════════════════════════════════════════════════════ -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"
+        tools:targetApi="upside_down_cake" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"
+        tools:targetApi="tiramisu" />
+
+    <!-- Prevents the CPU from sleeping while the mesh service is running -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Required by flutter_background_service for restart-on-boot (optional) -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- ══════════════════════════════════════════════════════
+         HARDWARE FEATURE DECLARATIONS
+    ═══════════════════════════════════════════════════════════ -->
+    <uses-feature android:name="android.hardware.bluetooth"    android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+    <uses-feature android:name="android.hardware.wifi"         android:required="false" />
+
+    <application
+        android:label="ZeroGrid"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+        <!-- ══════════════════════════════════════════════════════
+             ZEROGRID FOREGROUND SERVICE DECLARATION
+             android:exported="false" — only our own code starts it.
+             android:foregroundServiceType:
+               "connectedDevice" = Bluetooth / Wi-Fi (Android 10+)
+               Required for the service to access BLE while backgrounded.
+        ═══════════════════════════════════════════════════════════ -->
+        <service
+            android:name=".ZeroGridForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice"
+            android:stopWithTask="false" />
+
+        <!-- ══════════════════════════════════════════════════════
+             FLUTTER BACKGROUND SERVICE (plugin's internal service)
+             The plugin registers its own service entry; this meta-data
+             tag tells it to use our ZeroGridForegroundService class.
+             If you let the plugin manage its own service, remove the
+             entry above and keep only this meta-data block.
+        ═══════════════════════════════════════════════════════════ -->
+        <service
+            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice"
+            android:stopWithTask="false" />
+
+        <!-- Boot receiver: restarts the mesh service if the device reboots -->
+        <receiver
+            android:name="id.flutter.flutter_background_service.StartReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+</manifest>
