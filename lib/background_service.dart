@@ -163,7 +163,8 @@ void _onBackgroundStart(ServiceInstance service) async {
   // BUG FIX: store the periodic subscription so it can be cancelled
   // when stop() is called. Without this, the timer would keep firing
   // even after stopSelf(), leaking an isolate resource.
-  StreamSubscription<int>? _periodicSub;
+  // Stream.periodic() without a computation fn emits void, not int.
+  StreamSubscription<void>? _periodicSub;
 
   // ── Update the persistent notification with live status ──────────────────
   if (service is AndroidServiceInstance) {
@@ -175,7 +176,7 @@ void _onBackgroundStart(ServiceInstance service) async {
     });
 
     // Pulse the notification content every 60 seconds to show the mesh is alive.
-    _periodicSub = Stream.periodic(const Duration(seconds: 60))
+    _periodicSub = Stream<void>.periodic(const Duration(seconds: 60))
         .listen((_) async {
       if (await service.isForegroundService()) {
         service.setForegroundNotificationInfo(
@@ -186,6 +187,7 @@ void _onBackgroundStart(ServiceInstance service) async {
       }
     });
   }
+
 
   // ── Stop event listener ────────────────────────────────────────────────────
   service.on('stop').listen((_) {
